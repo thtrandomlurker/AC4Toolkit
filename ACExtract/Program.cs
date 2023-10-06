@@ -1,5 +1,6 @@
 ﻿using ACLib.Archives;
 using ACLib.Archives.Bind;
+using ACLib.Models;
 
 namespace ACExtract
 {

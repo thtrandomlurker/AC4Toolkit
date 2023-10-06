@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACExtract", "ACExtract\ACExtract.csproj", "{7A1761C4-272E-4FF2-BB21-B141745155EA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACExtract", "ACExtract\ACExtract.csproj", "{7A1761C4-272E-4FF2-BB21-B141745155EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACLib", "ACLib\ACLib.csproj", "{00FECFE0-54D0-4C19-AE71-C8929A73BD10}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACLib", "ACLib\ACLib.csproj", "{00FECFE0-54D0-4C19-AE71-C8929A73BD10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AC4ToolkitTests", "AC4ToolkitTests\AC4ToolkitTests.csproj", "{774573CD-6714-4BDB-A2E8-2A12F3B74909}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{00FECFE0-54D0-4C19-AE71-C8929A73BD10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00FECFE0-54D0-4C19-AE71-C8929A73BD10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00FECFE0-54D0-4C19-AE71-C8929A73BD10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{774573CD-6714-4BDB-A2E8-2A12F3B74909}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{774573CD-6714-4BDB-A2E8-2A12F3B74909}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{774573CD-6714-4BDB-A2E8-2A12F3B74909}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{774573CD-6714-4BDB-A2E8-2A12F3B74909}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -51,32 +51,37 @@ namespace ACLib.Archives.Bind
 
         public void Open()
         {
-            if (m_BaseStream == null)
+            if (!m_Initialized)
             {
-                throw new InvalidDataException("Bind entry has no base stream to open from");
+                if (m_BaseStream == null)
+                {
+                    throw new InvalidDataException("Bind entry has no base stream to open from");
+                }
+                // Get compressed buffer
+                m_BaseStream?.Seek(Offset, SeekOrigin.Begin);
+
+                byte[] cmpData = new byte[CompressedSize];
+                m_BaseStream?.Read(cmpData, 0, CompressedSize);
+
+                Stream memStream = new MemoryStream(cmpData);
+
+                ZLibStream decStream = new ZLibStream(memStream, CompressionMode.Decompress);
+
+                Stream = new MemoryStream(FileSize);
+
+                int totalRead = 0;
+                byte[] tBuf = new byte[16384];
+                while (totalRead < FileSize)
+                {
+                    int readCount = decStream.Read(tBuf, 0, ((FileSize - totalRead) < 16384 ? (FileSize - totalRead) : 16384));
+                    Stream.Write(tBuf, 0, readCount);
+                    totalRead += readCount;
+                }
+
+                Stream.Seek(0, SeekOrigin.Begin);
+
+                m_Initialized = true;
             }
-            // Get compressed buffer
-            m_BaseStream?.Seek(Offset, SeekOrigin.Begin);
-
-            byte[] cmpData = new byte[CompressedSize];
-            m_BaseStream?.Read(cmpData, 0, CompressedSize);
-
-            Stream memStream = new MemoryStream(cmpData);
-
-            ZLibStream decStream = new ZLibStream(memStream, CompressionMode.Decompress);
-
-            Stream = new MemoryStream(FileSize);
-
-            int totalRead = 0;
-            byte[] tBuf = new byte[16384];
-            while (totalRead < FileSize)
-            {
-                int readCount = decStream.Read(tBuf, 0, ((FileSize - totalRead) < 16384 ? (FileSize - totalRead) : 16384));
-                Stream.Write(tBuf, 0, readCount);
-                totalRead += readCount;
-            }
-
-            Stream.Seek(0, SeekOrigin.Begin);
         }
 
         public void Close()
