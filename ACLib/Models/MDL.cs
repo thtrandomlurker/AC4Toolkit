@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using System.Numerics;
 using ACLib.IO;
 using System.Runtime.InteropServices;
+using ACLib.Helpers;
+using Assimp;
+using Matrix4x4 = Assimp.Matrix4x4;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ACLib.Models
 {
@@ -94,9 +98,7 @@ namespace ACLib.Models
         public float vX;
         public float vY;
         public float vZ;
-        public float nX;
-        public float nY;
-        public float nZ;
+        public byte boneIdx;
         public byte vUnk0;
         public byte vUnk1;
         public byte vUnk2;
@@ -105,6 +107,8 @@ namespace ACLib.Models
         public byte vUnk5;
         public byte vUnk6;
         public byte vUnk7;
+        public byte vUnk8;
+        public byte vUnk9;
         public byte cR;
         public byte cG;
         public byte cB;
@@ -123,9 +127,7 @@ namespace ACLib.Models
             vX = reader.ReadSingleBE();
             vY = reader.ReadSingleBE();
             vZ = reader.ReadSingleBE();
-            nX = reader.ReadByte();
-            nY = reader.ReadByte();
-            nZ = reader.ReadByte();
+            boneIdx = reader.ReadByte();
             vUnk0 = reader.ReadByte();
             vUnk1 = reader.ReadByte();
             vUnk2 = reader.ReadByte();
@@ -134,6 +136,8 @@ namespace ACLib.Models
             vUnk5 = reader.ReadByte();
             vUnk6 = reader.ReadByte();
             vUnk7 = reader.ReadByte();
+            vUnk8 = reader.ReadByte();
+            vUnk9 = reader.ReadByte();
             tc0u = reader.ReadInt16BE();
             tc0v = reader.ReadInt16BE();
             tc1u = reader.ReadInt16BE();
@@ -245,6 +249,187 @@ namespace ACLib.Models
         public void Load(string filePath)
         {
             Load(File.OpenRead(filePath));
+        }
+
+        public void Export(string filePath)
+        {
+
+
+            AssimpContext aiContext = new AssimpContext();
+            Scene aiScene = new Scene();
+            aiScene.RootNode = new Node("MDL4");
+
+            // build skeleton
+
+
+            foreach (var bone in Skeleton)
+            {
+                Node boneToNode = new Node(bone.Name);
+
+                Matrix4x4 trsMatrix = Matrix4x4.FromTranslation(new Vector3D(bone.Translation.X, bone.Translation.Y, bone.Translation.Z));
+                Matrix4x4 rotMatrix = Matrix4x4.FromEulerAnglesXYZ(bone.Rotation.X * (float)Math.PI / 180, bone.Rotation.Y * (float)Math.PI / 180, bone.Rotation.Z * (float)Math.PI / 180);
+                Matrix4x4 sclMatrix = Matrix4x4.FromScaling(new Vector3D(bone.Scale.X, bone.Scale.Y, bone.Scale.Z));
+                Matrix4x4 outMatrix = Matrix4x4.Identity;
+                outMatrix *= trsMatrix;
+                outMatrix *= rotMatrix;
+                outMatrix *= sclMatrix;
+                //outMatrix.Inverse();
+
+                boneToNode.Transform = outMatrix;
+                if (bone.ParentID != -1)
+                {
+                    aiScene.RootNode.FindNode(Skeleton[bone.ParentID].Name).Children.Add(boneToNode);
+                }
+                else
+                {
+                    aiScene.RootNode.Children.Add(boneToNode);
+                }
+
+            }
+
+            foreach (var mat in Materials)
+            {
+                Assimp.Material aiMat = new Assimp.Material();
+                aiMat.Name = mat.Name;
+                aiScene.Materials.Add(aiMat);
+            }
+
+            for (int i = 0; i < Meshes.Count; i++)
+            {
+                Node meshNode = new Node($"mesh{i:d4}");
+
+                Assimp.Mesh mesh = new Assimp.Mesh();
+                mesh.PrimitiveType = PrimitiveType.Triangle;
+
+
+                foreach (var boneIdx in Meshes[i].BoneMap)
+                {
+                    if (boneIdx == -1)
+                        break;
+                    Matrix4x4 offsetMatrix = AssimpHelpers.CalculateNodeMatrixWS(aiScene.RootNode.FindNode(Skeleton[boneIdx].Name));
+                    offsetMatrix.Inverse();
+
+                    Assimp.Bone aiBone = new Assimp.Bone();
+                    aiBone.Name = Skeleton[boneIdx].Name;
+                    aiBone.OffsetMatrix = offsetMatrix;
+                    mesh.Bones.Add(aiBone);
+                }
+
+                mesh.MaterialIndex = Meshes[i].MaterialIndex;
+
+                byte[] vertexBuffer = BufferData.Skip(Meshes[i].VertexBufferOffset).Take(Meshes[i].VertexBufferSize).ToArray();
+                byte[] indexBuffer = BufferData.Skip(Meshes[i].IndexBufferOffset).Take(Meshes[i].IndexBufferSize).ToArray();
+
+                // read vertices into the mesh
+
+                for (int v = 0; v < Meshes[i].VertexBufferSize; v += 0x28)
+                {
+                    float posX = BitConverter.ToSingle(vertexBuffer.Skip(v).Take(4).Reverse().ToArray());
+                    float posY = BitConverter.ToSingle(vertexBuffer.Skip(v + 4).Take(4).Reverse().ToArray());
+                    float posZ = BitConverter.ToSingle(vertexBuffer.Skip(v + 8).Take(4).Reverse().ToArray());
+
+                    float colR = (float)vertexBuffer[v + 20] / 255;
+                    float colG = (float)vertexBuffer[v + 21] / 255;
+                    float colB = (float)vertexBuffer[v + 22] / 255;
+                    float colA = (float)vertexBuffer[v + 23] / 255;
+
+                    float U0 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 24).Take(2).Reverse().ToArray()) / 16384;
+                    float V0 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 26).Take(2).Reverse().ToArray()) / 16384;
+                    float U1 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 28).Take(2).Reverse().ToArray()) / 16384;
+                    float V1 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 30).Take(2).Reverse().ToArray()) / 16384;
+                    float U2 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 32).Take(2).Reverse().ToArray()) / 16384;
+                    float V2 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 34).Take(2).Reverse().ToArray()) / 16384;
+                    float U3 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 36).Take(2).Reverse().ToArray()) / 16384;
+                    float V3 = (float)BitConverter.ToInt16(vertexBuffer.Skip(v + 38).Take(2).Reverse().ToArray()) / 16384;
+                    byte boneIndex = vertexBuffer[v + 12];
+
+                    Vector3D vert = new Vector3D(posX, posY, posZ);
+
+                    Matrix4x4 vert_mat = Matrix4x4.FromTranslation(vert);
+
+                    vert_mat *= AssimpHelpers.CalculateNodeMatrixWS(aiScene.RootNode.FindNode(Skeleton[Meshes[i].BoneMap[boneIndex]].Name));
+
+                    vert_mat.Decompose(out Vector3D scl, out Assimp.Quaternion rotation, out Vector3D translation);
+
+                    mesh.Vertices.Add(translation);
+                    mesh.Bones[boneIndex].VertexWeights.Add(new VertexWeight(v / 0x28, 1.0f));
+
+                    mesh.TextureCoordinateChannels[0].Add(new Vector3D(U0, V0, 1.0f));
+                    mesh.TextureCoordinateChannels[1].Add(new Vector3D(U1, V1, 1.0f));
+                    mesh.TextureCoordinateChannels[2].Add(new Vector3D(U2, V2, 1.0f));
+                    mesh.TextureCoordinateChannels[3].Add(new Vector3D(U3, V3, 1.0f));
+
+                    mesh.VertexColorChannels[0].Add(new Color4D(colR, colG, colB, colA));
+                }
+
+                // read tris into the mesh
+                int indexBufferPos = 0;
+                while (indexBufferPos < Meshes[i].IndexBufferSize)
+                {
+                    // generate the initial face
+
+                    short f1 = BitConverter.ToInt16(indexBuffer.Skip(indexBufferPos).Take(2).Reverse().ToArray());
+
+                    short f2 = BitConverter.ToInt16(indexBuffer.Skip(indexBufferPos + 2).Take(2).Reverse().ToArray());
+
+                    short f3 = BitConverter.ToInt16(indexBuffer.Skip(indexBufferPos + 4).Take(2).Reverse().ToArray());
+
+                    // commit face to file
+
+                    //output.Write(Encoding.ASCII.GetBytes($"f {f1 + 1}/{f1 + 1}/{f1 + 1} {f2 + 1}/{f2 + 1}/{f2 + 1} {f3 + 1}/{f3 + 1}/{f3 + 1}\n"));
+
+                    //output.WriteLine($"f {f1} {f2} {f3}");
+
+                    mesh.Faces.Add(new Face(new int[] { f1, f2, f3 }));
+
+
+                    indexBufferPos += 6;
+
+                    bool flip = true;
+
+                    while (true)
+                    {
+                        if (indexBufferPos >= Meshes[i].IndexBufferSize)
+                            break;
+                        f1 = f2;
+                        f2 = f3;
+                        f3 = BitConverter.ToInt16(indexBuffer.Skip(indexBufferPos).Take(2).Reverse().ToArray());
+                        indexBufferPos += 2;
+                        if (f3 == -1)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            if (flip)
+                            {
+                                //output.Write(Encoding.ASCII.GetBytes($"f {f3 + 1}/{f3 + 1}/{f3 + 1} {f2 + 1}/{f2 + 1}/{f2 + 1} {f1 + 1}/{f1 + 1}/{f1 + 1}\n"));
+
+                                //output.WriteLine($"f {f3} {f2} {f1}");
+
+                                mesh.Faces.Add(new Face(new int[] { f3, f2, f1 }));
+                            }
+                            else
+                            {
+                                //output.Write(Encoding.ASCII.GetBytes($"f {f1 + 1}/{f1 + 1}/{f1 + 1} {f2 + 1}/{f2 + 1}/{f2 + 1} {f3 + 1}/{f3 + 1}/{f3 + 1}\n"));
+
+                                //output.WriteLine($"f {f1} {f2} {f3}");
+
+                                mesh.Faces.Add(new Face(new int[] { f1, f2, f3 }));
+                            }
+                            flip = !flip;
+                        }
+                    }
+                }
+                aiScene.Meshes.Add(mesh);
+                meshNode.MeshIndices.Add(i);
+                aiScene.RootNode.Children.Add(meshNode);
+            }
+
+            string formatId = new AssimpContext().GetSupportedExportFormats()
+                .First(x => x.FileExtension.Equals(Path.GetExtension(filePath).Split('.')[1], StringComparison.OrdinalIgnoreCase)).FormatId;
+
+            aiContext.ExportFile(aiScene, filePath, formatId, Assimp.PostProcessSteps.None);
         }
 
         public MDL()

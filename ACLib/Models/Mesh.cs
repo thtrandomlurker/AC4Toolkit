@@ -14,6 +14,7 @@ namespace ACLib.Models
         public byte Unk02 { get; set; }
 
         public short Unk03 { get; set; }
+        public short Unk04 { get; set; }
 
         // 29 bone ids
         public short[] BoneMap { get; set; }
@@ -30,7 +31,8 @@ namespace ACLib.Models
             Unk01 = reader.ReadByte();
             Unk02 = reader.ReadByte();
             Unk03 = reader.ReadInt16BE();
-            for (int i = 0; i < 29; i++)
+            Unk04 = reader.ReadInt16BE();
+            for (int i = 0; i < 28; i++)
             {
                 BoneMap[i] = reader.ReadInt16BE();
             }
@@ -42,7 +44,7 @@ namespace ACLib.Models
 
         public Mesh()
         {
-            BoneMap = new short[29];
+            BoneMap = new short[28];
         }
     }
 }

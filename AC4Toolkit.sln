@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACExtract", "ACExtract\ACEx
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACLib", "ACLib\ACLib.csproj", "{00FECFE0-54D0-4C19-AE71-C8929A73BD10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AC4ToolkitTests", "AC4ToolkitTests\AC4ToolkitTests.csproj", "{774573CD-6714-4BDB-A2E8-2A12F3B74909}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AC4ModelConverter", "AC4ToolkitTests\AC4ModelConverter.csproj", "{774573CD-6714-4BDB-A2E8-2A12F3B74909}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
